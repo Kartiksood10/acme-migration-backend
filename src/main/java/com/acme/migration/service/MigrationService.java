@@ -6,6 +6,7 @@ import com.acme.migration.entity.MigrationJobs;
 import com.acme.migration.repository.MigrationJobsRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -25,11 +26,16 @@ public class MigrationService {
 
     // Create and instantiate Rest client once for the class
     private final RestClient restClient = RestClient.create();
-
-    private static final String CALLBACK_URL = "http://localhost:8081/api/v1/webhook/migrations";
-    private static final String FASTAPI_ENDPOINT = "http://localhost:8000/migrations";
-    private static final String TEST_CALLBACK_URL = "https://webhook.site/04518c1e-f23e-4a73-9afc-0fa4afb8958e";
     private static final String UPLOAD =  "UPLOAD";
+
+    @Value("${webhook.callbackUrl}")
+    private String callbackUrl;
+
+    @Value(("${webhook.test.callbackUrl}"))
+    private String testCallbackUrl;
+
+    @Value("${fastapi.endpoint}")
+    private String fastApiEndpoint;
 
     /**
      * Method to send a Migration POST request to FastAPI migration worker
@@ -60,7 +66,7 @@ public class MigrationService {
         // 3. Build the Multipart Form Data payload expected by FastAPI
         MultiValueMap<String, Object> multipartBody = new LinkedMultiValueMap<>();
         multipartBody.add("consumer_repo_url", request.getRepositoryUrl());
-        multipartBody.add("callback_url", TEST_CALLBACK_URL);
+        multipartBody.add("callback_url", callbackUrl);
 
         // 4. Attach File Streams or URL Strings
         if (UPLOAD.equalsIgnoreCase(request.getSourceContractType())) {
@@ -77,7 +83,7 @@ public class MigrationService {
 
         // 5. Call the FastAPI Worker through rest client POST request
         MigrationTriggerResponse response = restClient.post()
-                .uri(FASTAPI_ENDPOINT)
+                .uri(fastApiEndpoint)
                 .contentType(MediaType.MULTIPART_FORM_DATA)
                 .body(multipartBody)
                 .retrieve()
