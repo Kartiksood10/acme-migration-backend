@@ -1,7 +1,11 @@
 package com.acme.migration.service;
 
+import com.acme.migration.dto.EndpointLogDTO;
+import com.acme.migration.dto.MigrationStatusResponse;
 import com.acme.migration.dto.MigrationTriggerRequest;
 import com.acme.migration.dto.MigrationTriggerResponse;
+import com.acme.migration.entity.EndpointExecutionLogs;
+import com.acme.migration.entity.GeneratedPullRequests;
 import com.acme.migration.entity.MigrationJobs;
 import com.acme.migration.repository.MigrationJobsRepository;
 import lombok.RequiredArgsConstructor;
@@ -10,11 +14,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @Slf4j
@@ -108,6 +115,47 @@ public class MigrationService {
 
         migrationJobsRepository.save(migrationJobs);
         log.info("Migration job id {} has been saved in the DB", jobId);
+
+        return response;
+    }
+
+    /**
+     * Front end polling API that checks migration completion status
+     * Finds existing triggered migration from DB and returns the current response to the UI
+     * @param jobId Migration JobID
+     * @return Migration status response for the UI
+     */
+    @Transactional(readOnly = true)
+    public MigrationStatusResponse getMigrationJobStatus(String jobId) {
+        MigrationJobs job = migrationJobsRepository.findById(jobId)
+                .orElseThrow(() -> new RuntimeException("Job not found: " + jobId));
+
+        String status = job.getStatus();
+        Double executionTimeMinutes = job.getExecutionTimeMinutes();
+        String errorMessage = job.getErrorMessage();
+        List<String> prUrls = new ArrayList<>();
+        List<EndpointLogDTO> logDTOs = new ArrayList<>();
+
+        MigrationStatusResponse response = new MigrationStatusResponse();
+        response.setJobId(jobId);
+        response.setStatus(status);
+        response.setErrorMessage(errorMessage);
+        response.setExecutionTimeMinutes(executionTimeMinutes);
+
+        if(job.getPullRequests()!=null) {
+            for(GeneratedPullRequests pr : job.getPullRequests()) {
+                prUrls.add(pr.getPrUrl());
+            }
+        }
+
+        if(job.getExecutionLogs()!=null) {
+            for(EndpointExecutionLogs log : job.getExecutionLogs()) {
+                logDTOs.add(new EndpointLogDTO(log.getEndpointName(), log.getStatus()));
+            }
+        }
+
+        response.setGeneratedPrs(prUrls);
+        response.setEndpointLogs(logDTOs);
 
         return response;
     }

@@ -1,5 +1,6 @@
 package com.acme.migration.controller;
 
+import com.acme.migration.dto.MigrationStatusResponse;
 import com.acme.migration.dto.MigrationTriggerRequest;
 import com.acme.migration.dto.MigrationTriggerResponse;
 import com.acme.migration.dto.WebhookCallbackPayload;
@@ -18,7 +19,12 @@ public class MigrationController {
     private final MigrationService migrationService;
     private final MigrationWebhookService migrationWebhookService;
 
-    // @ModelAttribute automatically binds the multipart/form-data into the DTO properties
+    /**
+     * API to trigger a new API contract migration from the UI
+     * '@ModelAttribute' automatically binds the multipart/form-data into the DTO properties
+     * @param request Migration trigger request
+     * @return Immediate 202 trigger response received from FastAPI python worker
+     */
     @PostMapping(value = "/migrate", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<MigrationTriggerResponse> triggerMigration(@ModelAttribute MigrationTriggerRequest request) {
 
@@ -29,8 +35,24 @@ public class MigrationController {
         return ResponseEntity.accepted().body(response);
     }
 
+    /**
+     * API to receive webhook callback payload from the FastAPI python worker
+     * Updates latest status, generated PRs and executed endpoints in the DB
+     * @param payload Webhook payload
+     */
     @PostMapping("/webhook/migrations")
     public void handleWebhook(@RequestBody WebhookCallbackPayload payload) {
         migrationWebhookService.handleMigrationWebhook(payload);
+    }
+
+    /**
+     * Front end polling API to fetch latest migration status from DB
+     * @param jobId Migration JobID
+     * @return Migration status response delivered to the UI
+     */
+    @GetMapping("/migrations/{jobId}")
+    public ResponseEntity<MigrationStatusResponse> getMigrationDetails(@PathVariable("jobId") String jobId) {
+        MigrationStatusResponse response = migrationService.getMigrationJobStatus(jobId);
+        return ResponseEntity.ok(response);
     }
 }
