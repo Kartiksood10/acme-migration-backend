@@ -1,9 +1,6 @@
 package com.acme.migration.service;
 
-import com.acme.migration.dto.EndpointLogDTO;
-import com.acme.migration.dto.MigrationStatusResponse;
-import com.acme.migration.dto.MigrationTriggerRequest;
-import com.acme.migration.dto.MigrationTriggerResponse;
+import com.acme.migration.dto.*;
 import com.acme.migration.entity.EndpointExecutionLogs;
 import com.acme.migration.entity.GeneratedPullRequests;
 import com.acme.migration.entity.MigrationJobs;
@@ -159,5 +156,27 @@ public class MigrationService {
         response.setEndpointLogs(logDTOs);
 
         return response;
+    }
+
+    /**
+     * Retrieves a lightweight summary of all migration jobs for the UI dashboard
+     * @return List of Migration Summary DTO
+     */
+    @Transactional(readOnly = true)
+    public List<MigrationSummaryDTO> getAllMigrations() {
+        List<MigrationSummaryDTO> migrationSummaryList = new ArrayList<>();
+        List<MigrationJobs> migrationJobs = migrationJobsRepository.findAll();
+
+        for(MigrationJobs job : migrationJobs) {
+            MigrationSummaryDTO migrationSummaryDTO = new MigrationSummaryDTO();
+            migrationSummaryDTO.setJobId(job.getJobId());
+            migrationSummaryDTO.setRepositoryUrl(job.getRepositoryUrl());
+            migrationSummaryDTO.setStatus(job.getStatus());
+            migrationSummaryDTO.setExecutionTimeMinutes(job.getExecutionTimeMinutes());
+
+            migrationSummaryList.add(migrationSummaryDTO);
+        }
+
+        return migrationSummaryList;
     }
 }

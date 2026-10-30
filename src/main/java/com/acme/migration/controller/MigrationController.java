@@ -1,15 +1,14 @@
 package com.acme.migration.controller;
 
-import com.acme.migration.dto.MigrationStatusResponse;
-import com.acme.migration.dto.MigrationTriggerRequest;
-import com.acme.migration.dto.MigrationTriggerResponse;
-import com.acme.migration.dto.WebhookCallbackPayload;
+import com.acme.migration.dto.*;
 import com.acme.migration.service.MigrationService;
 import com.acme.migration.service.MigrationWebhookService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -53,6 +52,16 @@ public class MigrationController {
     @GetMapping("/migrations/{jobId}")
     public ResponseEntity<MigrationStatusResponse> getMigrationDetails(@PathVariable("jobId") String jobId) {
         MigrationStatusResponse response = migrationService.getMigrationJobStatus(jobId);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Front end Dashboard API to fetch a summary of all historical migration jobs
+     * @return List of migration job summaries delivered to the UI
+     */
+    @GetMapping("/migrations")
+    public ResponseEntity<List<MigrationSummaryDTO>> getAllMigrations() {
+        List<MigrationSummaryDTO> response = migrationService.getAllMigrations();
         return ResponseEntity.ok(response);
     }
 }
