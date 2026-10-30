@@ -7,6 +7,7 @@ import com.acme.migration.dto.MigrationTriggerResponse;
 import com.acme.migration.entity.EndpointExecutionLogs;
 import com.acme.migration.entity.GeneratedPullRequests;
 import com.acme.migration.entity.MigrationJobs;
+import com.acme.migration.exception.JobNotFoundException;
 import com.acme.migration.repository.MigrationJobsRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -128,7 +129,7 @@ public class MigrationService {
     @Transactional(readOnly = true)
     public MigrationStatusResponse getMigrationJobStatus(String jobId) {
         MigrationJobs job = migrationJobsRepository.findById(jobId)
-                .orElseThrow(() -> new RuntimeException("Job not found: " + jobId));
+                .orElseThrow(() -> new JobNotFoundException("Job not found: " + jobId));
 
         String status = job.getStatus();
         Double executionTimeMinutes = job.getExecutionTimeMinutes();
