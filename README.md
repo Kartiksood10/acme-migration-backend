@@ -18,7 +18,7 @@ Instead of blocking HTTP connections during a 5-10 minute AI execution, this bac
 
 ## 🏗️ Architecture & Worker Linkage
 
-The ACME architecture physically separates FastAPI serving from slow AI processing.
+The ACME architecture physically separates quick web API responses from time-consuming AI tasks.
 
 ### 1. ACME Backend
 The traffic cop and database manager. It ensures the database accurately reflects the migration's current state (`PROCESSING`, `COMPLETED`, `FAILED`, `PARTIAL_FAILURE`) and serves this state to querying clients.
