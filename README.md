@@ -18,7 +18,7 @@ Instead of blocking HTTP connections during a 5-10 minute AI execution, this bac
 
 ## 🏗️ Architecture & Worker Linkage
 
-The ACME architecture physically separates fast API serving from slow AI processing.
+The ACME architecture physically separates FastAPI serving from slow AI processing.
 
 ### 1. ACME Backend
 The traffic cop and database manager. It ensures the database accurately reflects the migration's current state (`PROCESSING`, `COMPLETED`, `FAILED`, `PARTIAL_FAILURE`) and serves this state to querying clients.
@@ -32,7 +32,7 @@ The autonomous engine. Triggered by this Spring Boot backend, it spins up Docker
 2. **Accept:** Spring Boot saves initial state to PostgreSQL and returns a `202 Accepted`.
 3. **Delegate:** Spring Boot forwards the request payload to the Python Worker's `/migrations` endpoint.
 4. **Poll:** The client begins polling `GET /api/v1/migrations/{jobId}`. Spring Boot returns `"PROCESSING"`.
-5. **Execute:** The Python worker runs its LangGraph pipeline for 5+ minutes.
+5. **Execute:** The Python worker runs its LangGraph pipeline for a few minutes.
 6. **Callback:** The Python worker finishes and sends a `POST` payload to `api/v1/webhook/migrations`.
 7. **Finalize:** Spring Boot updates PostgreSQL with PR links and logs. On the next client poll, it returns `"COMPLETED"`.
 
@@ -97,7 +97,7 @@ fastapi.endpoint=http://localhost:8000/migrations
 
 # Webhook Callbacks
 webhook.callbackUrl=http://localhost:8081/api/v1/webhook/migrations
-webhook.test.callbackUrl=https://webhook.site/04518c1e-f23e-4a73-9afc-0fa4afb8958e
+webhook.test.callbackUrl=https://webhook.site/yourUniqueId
 ```
 
 ### 3. Build and Run
@@ -106,9 +106,3 @@ mvn clean install
 mvn spring-boot:run
 ```
 The server will start on port `8081`.
-
-## 🎯 Project Highlights
-
-- **Architectural Separation of Concerns:** By using a Webhook/Polling pattern, the system completely avoids hanging HTTP connections and HTTP timeout errors common in AI applications.
-- **Production-Ready Exception Handling:** The backend securely intercepts exceptions, guaranteeing predictable JSON API responses.
-- **Memory Optimized:** Utilizing `@Transactional(readOnly = true)` bypasses Hibernate's dirty-checking overhead for the high-frequency polling API.
